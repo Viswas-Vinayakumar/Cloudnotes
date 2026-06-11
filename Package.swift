@@ -6,9 +6,15 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
+    dependencies: [
+        .package(url: "https://github.com/supabase/supabase-swift", from: "2.0.0")
+    ],
     targets: [
         .executableTarget(
             name: "CloudNotes",
+            dependencies: [
+                .product(name: "Supabase", package: "supabase-swift")
+            ],
             path: "Sources/CloudNotes"
         )
     ]

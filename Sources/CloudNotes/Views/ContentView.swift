@@ -4,6 +4,7 @@ import SwiftUI
 /// sidebar (folders) → notes list → editor, with a unified toolbar.
 struct ContentView: View {
     @EnvironmentObject private var store: NotesStore
+    @EnvironmentObject private var cloud: CloudSyncManager
     @State private var aiRunning = false
     @State private var aiError: String?
 
@@ -52,11 +53,20 @@ struct ContentView: View {
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 6) {
-                Image(systemName: store.isUsingiCloud ? "checkmark.icloud" : "externaldrive")
-                    .foregroundStyle(.secondary)
-                Text(store.isUsingiCloud ? "Syncing via iCloud Drive" : "Local folder (no iCloud found)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if cloud.isSignedIn {
+                    Image(systemName: cloud.isSyncing ? "arrow.triangle.2.circlepath.icloud" : "checkmark.icloud.fill")
+                        .foregroundStyle(.green)
+                    Text(cloud.isSyncing ? "Syncing…" : (cloud.userEmail ?? "Synced"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Image(systemName: store.isUsingiCloud ? "checkmark.icloud" : "externaldrive")
+                        .foregroundStyle(.secondary)
+                    Text(store.isUsingiCloud ? "iCloud Drive folder" : "Local folder")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
             }
             .padding(8)

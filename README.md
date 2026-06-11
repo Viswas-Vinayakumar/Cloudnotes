@@ -3,10 +3,14 @@
 A native macOS notes app inspired by the classic three-pane Notes layout — sidebar,
 notes list, editor — built with SwiftUI, plus three things the original doesn't do:
 
-1. **Cloud auto-sync, zero save buttons.** Every keystroke autosaves (0.5 s debounce)
-   to a folder inside **iCloud Drive** (`iCloud Drive/CloudNotes`). iCloud carries the
-   files to your other Macs; the app watches the folder and live-merges changes that
-   sync in. If iCloud Drive isn't set up, it falls back to `~/Documents/CloudNotes`.
+1. **Cloud auto-sync, zero save buttons — now with sign-in & real time.** Every
+   keystroke autosaves (0.5 s debounce). Two sync modes:
+   - **Account mode (recommended):** sign in with email + password in Settings and
+     every edit is pushed instantly to the cloud (free Supabase backend) while a
+     realtime subscription streams in changes from your other devices, live.
+   - **No-account mode:** notes are plain files in `iCloud Drive/CloudNotes`
+     (fallback `~/Documents/CloudNotes`); iCloud Drive carries them between Macs
+     and the app live-merges changes it sees in the folder.
 2. **WhatsApp-style timestamps.** New notes start with a `[11 June 2026, 2:20 PM]`
    stamp. Come back to a note after 10+ minutes and a fresh stamp is inserted
    automatically — like a new message bubble. You can also insert one manually
@@ -33,6 +37,26 @@ swift run
 ```
 
 Or open `Package.swift` in Xcode and press **Run**.
+
+### Make a double-clickable app
+
+```bash
+./scripts/build-app.sh
+```
+
+This produces `build/CloudNotes.app` (release build, ad-hoc signed). Drag it into
+`/Applications` and launch it like any other Mac app.
+
+### Real-time account sync (one-time backend setup, ~3 minutes, free)
+
+1. Create a free project at https://supabase.com (free tier is plenty).
+2. In the project's **SQL Editor**, paste and run `supabase/schema.sql` from this repo.
+3. In the app: **Settings (⌘,) → Account**, paste your project URL and anon key
+   (Supabase dashboard → Project Settings → API), then **Create Account** / **Sign In**.
+
+From then on the sidebar footer shows your signed-in account, and edits sync across
+your Macs the moment you type them. Row-level security in the schema means each
+account can only ever read its own notes.
 
 ### Free AI setup (one time)
 

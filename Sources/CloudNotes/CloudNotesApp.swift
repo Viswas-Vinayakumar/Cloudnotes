@@ -4,6 +4,7 @@ import AppKit
 @main
 struct CloudNotesApp: App {
     @StateObject private var store = NotesStore()
+    @StateObject private var cloud = CloudSyncManager()
 
     init() {
         // Lets the app present a proper foreground window even when
@@ -18,7 +19,12 @@ struct CloudNotesApp: App {
         WindowGroup("Notes") {
             ContentView()
                 .environmentObject(store)
+                .environmentObject(cloud)
                 .frame(minWidth: 900, minHeight: 560)
+                .task {
+                    store.cloud = cloud
+                    await cloud.bootstrap() // restores a previous sign-in
+                }
         }
         .commands {
             CommandGroup(after: .newItem) {
@@ -34,6 +40,7 @@ struct CloudNotesApp: App {
         Settings {
             SettingsView()
                 .environmentObject(store)
+                .environmentObject(cloud)
         }
     }
 }

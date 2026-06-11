@@ -14,6 +14,12 @@ final class NotesStore: ObservableObject {
     let syncFolder: URL
     let isUsingiCloud: Bool
 
+    /// Optional account-based real-time sync (Supabase). When attached,
+    /// every local save is pushed and remote changes are merged in live.
+    weak var cloud: CloudSyncManager? {
+        didSet { wireCloudHandlers() }
+    }
+
     private var saveTasks: [UUID: Task<Void, Never>] = [:]
     private var folderMonitor: DispatchSourceFileSystemObject?
     private var monitorFD: Int32 = -1
@@ -123,6 +129,7 @@ final class NotesStore: ObservableObject {
         saveTasks[id]?.cancel()
         lastLocalWrite = .now
         try? FileManager.default.removeItem(at: fileURL(for: note.id))
+        cloud?.pushDelete(note.id)
         if selectedNoteID == id {
             selectedNoteID = sortedNotes.first?.id
         }
@@ -178,6 +185,41 @@ final class NotesStore: ObservableObject {
             try data.write(to: fileURL(for: note.id), options: .atomic)
         } catch {
             NSLog("CloudNotes: failed to save note \(note.id): \(error)")
+        }
+        cloud?.push(note)
+    }
+
+    // MARK: - Account cloud sync (real-time)
+
+    private func wireCloudHandlers() {
+        cloud?.onRemoteUpsert = { [weak self] remote in
+            guard let self else { return }
+            if let idx = self.notes.firstIndex(where: { $0.id == remote.id }) {
+                // Newest edit wins; never clobber a strictly newer local note.
+                if remote.updatedAt > self.notes[idx].updatedAt {
+                    self.notes[idx] = remote
+                    self.writeLocalOnly(remote)
+                }
+            } else {
+                self.notes.append(remote)
+                self.writeLocalOnly(remote)
+            }
+        }
+        cloud?.onRemoteDelete = { [weak self] id in
+            guard let self else { return }
+            guard self.notes.contains(where: { $0.id == id }) else { return }
+            self.notes.removeAll { $0.id == id }
+            self.lastLocalWrite = .now
+            try? FileManager.default.removeItem(at: self.fileURL(for: id))
+            if self.selectedNoteID == id { self.selectedNoteID = self.sortedNotes.first?.id }
+        }
+    }
+
+    /// Writes a remote note to disk without echoing it back to the cloud.
+    private func writeLocalOnly(_ note: Note) {
+        if let data = try? encoder.encode(note) {
+            lastLocalWrite = .now
+            try? data.write(to: fileURL(for: note.id), options: .atomic)
         }
     }
 
