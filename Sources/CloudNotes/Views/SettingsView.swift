@@ -1,21 +1,48 @@
 import SwiftUI
 
-/// Settings (⌘,): Anthropic API key, model, and a peek at the sync folder.
+/// Settings (⌘,): AI provider (free local Ollama by default), model,
+/// and a peek at the sync folder.
 struct SettingsView: View {
     @EnvironmentObject private var store: NotesStore
+    @AppStorage("aiProvider") private var provider: String = AIProvider.ollama.rawValue
+    @AppStorage("ollamaURL") private var ollamaURL: String = AIService.defaultOllamaURL
+    @AppStorage("ollamaModel") private var ollamaModel: String = AIService.defaultOllamaModel
     @AppStorage("anthropicAPIKey") private var apiKey: String = ""
-    @AppStorage("anthropicModel") private var model: String = AIService.defaultModel
+    @AppStorage("anthropicModel") private var anthropicModel: String = AIService.defaultAnthropicModel
 
     var body: some View {
         Form {
             Section("AI Cleanup") {
-                SecureField("Anthropic API key", text: $apiKey)
-                    .textFieldStyle(.roundedBorder)
-                TextField("Model", text: $model)
-                    .textFieldStyle(.roundedBorder)
-                Text("Get a key at console.anthropic.com. It is stored only on this Mac.")
+                Picker("Provider", selection: $provider) {
+                    ForEach(AIProvider.allCases) { p in
+                        Text(p.label).tag(p.rawValue)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+
+                if provider == AIProvider.ollama.rawValue {
+                    TextField("Model", text: $ollamaModel)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Server", text: $ollamaURL)
+                        .textFieldStyle(.roundedBorder)
+                    Text("""
+                    Free & private — runs on this Mac, no tokens, works offline.
+                    One-time setup in Terminal:
+                      brew install ollama
+                      ollama pull llama3.2
+                      ollama serve
+                    """)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                } else {
+                    SecureField("Anthropic API key", text: $apiKey)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Model", text: $anthropicModel)
+                        .textFieldStyle(.roundedBorder)
+                    Text("Uses paid API tokens. Key is stored only on this Mac.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Sync") {
@@ -31,7 +58,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
+        .frame(width: 480)
         .padding()
     }
 }

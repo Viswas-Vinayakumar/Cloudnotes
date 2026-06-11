@@ -11,15 +11,18 @@ notes list, editor — built with SwiftUI, plus three things the original doesn'
    stamp. Come back to a note after 10+ minutes and a fresh stamp is inserted
    automatically — like a new message bubble. You can also insert one manually
    (clock button or ⇧⌘T).
-3. **One-button AI cleanup.** Hit the ✨ button and your rough, fragmented text is
-   rewritten into proper, structured notes via the Anthropic API — keeping every
-   fact and every timestamp. An undo arrow appears so you can revert instantly.
+3. **One-button AI cleanup — free by default.** Hit the ✨ button and your rough,
+   fragmented text is rewritten into proper, structured notes — keeping every fact
+   and every timestamp. An undo arrow appears so you can revert instantly.
+   By default it uses a **free local model via Ollama** (no API tokens, no account,
+   works offline, notes never leave your Mac). The Anthropic API remains available
+   as an optional provider in Settings if you ever want a stronger model.
 
 ## Requirements
 
 - macOS 13 Ventura or newer
 - Xcode 15+ (or just the Command Line Tools with a recent Swift toolchain)
-- An Anthropic API key for the AI button (everything else works without one)
+- For the AI button: [Ollama](https://ollama.com) (free) — or optionally an Anthropic API key
 
 ## Run it
 
@@ -31,8 +34,17 @@ swift run
 
 Or open `Package.swift` in Xcode and press **Run**.
 
-First launch: open **Settings (⌘,)**, paste your Anthropic API key
-(from https://console.anthropic.com), done.
+### Free AI setup (one time)
+
+```bash
+brew install ollama
+ollama pull llama3.2   # ~2 GB, runs great on Apple Silicon
+ollama serve           # leave running (or it autostarts as a service)
+```
+
+That's it — the ✨ button now works with zero tokens. Prefer a different local
+model? Pull it (`ollama pull qwen2.5:7b`) and set the name in **Settings (⌘,)**.
+To use the Anthropic API instead, switch the provider in Settings and paste a key.
 
 ## Keyboard shortcuts
 
@@ -62,7 +74,7 @@ Sources/CloudNotes/
 ├── CloudNotesApp.swift      # App entry, menu commands, Settings scene
 ├── Models/Note.swift        # Note model (title/preview derived from content)
 ├── Store/NotesStore.swift   # Persistence, autosave, sync merge, folder watcher
-├── Services/AIService.swift # Anthropic Messages API client
+├── Services/AIService.swift # AI providers: Ollama (local, free) + Anthropic (optional)
 └── Views/
     ├── ContentView.swift    # Three-pane split view + toolbar + AI action
     ├── NoteListView.swift   # Middle column list with relative dates
