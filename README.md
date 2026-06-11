@@ -75,9 +75,29 @@ To use the Anthropic API instead, switch the provider in Settings and paste a ke
 | Shortcut | Action |
 |---|---|
 | ⌘N | New note |
+| ⌘B / ⌘I / ⌘U | Bold / Italic / Underline |
+| ⇧⌘H | Highlight (yellow) |
+| ⇧⌘X | Strikethrough |
 | ⇧⌘T | Insert timestamp |
-| ⌘, | Settings (API key, model, sync folder) |
+| ⌘, | Settings |
 | ⌘F (toolbar) | Search notes |
+
+Formatting is real rich text (stored as RTF alongside a plain-text mirror used
+for search, sync, and AI). AI cleanup outputs plain text, so formatting resets
+on the cleaned note — the revert arrow restores the original.
+
+## Choose your cloud
+
+**Settings → Offline Storage** picks where note files live and auto-sync:
+
+- **iCloud Drive** — default when available
+- **Google Drive** — appears automatically when the
+  [Google Drive for desktop](https://www.google.com/drive/download/) app is
+  installed and signed in; notes go to `My Drive/CloudNotes` and Google syncs them
+- **Local only** — `~/Documents/CloudNotes`
+
+Switching copies your notes over instantly; relaunch to finish. Account-based
+real-time sync (sign-in) works on top of any of these.
 
 ## How sync works
 

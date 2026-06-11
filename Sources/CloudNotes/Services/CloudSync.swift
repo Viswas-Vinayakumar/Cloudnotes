@@ -37,6 +37,7 @@ final class CloudSyncManager: ObservableObject {
         var user_id: UUID?
         var content: String
         var pre_ai_content: String?
+        var rtf_base64: String?
         var created_at: Date
         var updated_at: Date
         var deleted: Bool
@@ -46,6 +47,7 @@ final class CloudSyncManager: ObservableObject {
             user_id = userID
             content = note.content
             pre_ai_content = note.preAIContent
+            rtf_base64 = note.rtfBase64
             created_at = note.createdAt
             updated_at = note.updatedAt
             deleted = false
@@ -53,7 +55,8 @@ final class CloudSyncManager: ObservableObject {
 
         var asNote: Note {
             Note(id: id, content: content, createdAt: created_at,
-                 updatedAt: updated_at, preAIContent: pre_ai_content)
+                 updatedAt: updated_at, preAIContent: pre_ai_content,
+                 rtfBase64: rtf_base64)
         }
     }
 

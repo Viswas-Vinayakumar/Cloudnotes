@@ -10,9 +10,10 @@ final class NotesStore: ObservableObject {
     @Published var selectedNoteID: UUID?
     @Published var searchText: String = ""
 
-    /// Where notes live. iCloud Drive if available, otherwise ~/Documents.
+    /// Where notes live: iCloud Drive, Google Drive (desktop app), or local.
     let syncFolder: URL
     let isUsingiCloud: Bool
+    let locationLabel: String
 
     /// Optional account-based real-time sync (Supabase). When attached,
     /// every local save is pushed and remote changes are merged in live.
@@ -38,19 +39,59 @@ final class NotesStore: ObservableObject {
         return d
     }()
 
+    enum StorageLocation: String, CaseIterable {
+        case auto, icloud, googleDrive, local
+    }
+
+    static func iCloudDriveRoot() -> URL? {
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs", isDirectory: true)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Google Drive for desktop mounts under ~/Library/CloudStorage/GoogleDrive-<email>.
+    static func googleDriveRoot() -> URL? {
+        let cs = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/CloudStorage", isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: cs, includingPropertiesForKeys: nil) else { return nil }
+        guard let gd = entries.first(where: { $0.lastPathComponent.hasPrefix("GoogleDrive") }) else { return nil }
+        let myDrive = gd.appendingPathComponent("My Drive", isDirectory: true)
+        return FileManager.default.fileExists(atPath: myDrive.path) ? myDrive : gd
+    }
+
+    static func folder(for location: StorageLocation) -> (URL, String) {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let local = (home.appendingPathComponent("Documents/CloudNotes", isDirectory: true), "Local folder")
+        switch location {
+        case .icloud:
+            if let root = iCloudDriveRoot() {
+                return (root.appendingPathComponent("CloudNotes", isDirectory: true), "iCloud Drive")
+            }
+            return local
+        case .googleDrive:
+            if let root = googleDriveRoot() {
+                return (root.appendingPathComponent("CloudNotes", isDirectory: true), "Google Drive")
+            }
+            return local
+        case .local:
+            return local
+        case .auto:
+            if let root = iCloudDriveRoot() {
+                return (root.appendingPathComponent("CloudNotes", isDirectory: true), "iCloud Drive")
+            }
+            return local
+        }
+    }
+
     init() {
         let fm = FileManager.default
-        let home = fm.homeDirectoryForCurrentUser
-        let iCloudDrive = home
-            .appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs", isDirectory: true)
-
-        if fm.fileExists(atPath: iCloudDrive.path) {
-            syncFolder = iCloudDrive.appendingPathComponent("CloudNotes", isDirectory: true)
-            isUsingiCloud = true
-        } else {
-            syncFolder = home.appendingPathComponent("Documents/CloudNotes", isDirectory: true)
-            isUsingiCloud = false
-        }
+        let pref = StorageLocation(rawValue:
+            UserDefaults.standard.string(forKey: "storageLocation") ?? "auto") ?? .auto
+        let (folder, label) = Self.folder(for: pref)
+        syncFolder = folder
+        locationLabel = label
+        isUsingiCloud = (label == "iCloud Drive")
         try? fm.createDirectory(at: syncFolder, withIntermediateDirectories: true)
 
         loadAll()
@@ -102,14 +143,42 @@ final class NotesStore: ObservableObject {
         guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
         guard notes[idx].content != newContent else { return }
         notes[idx].content = newContent
+        notes[idx].rtfBase64 = nil
         notes[idx].updatedAt = .now
         scheduleAutosave(notes[idx])
+    }
+
+    /// Rich edit from the editor: plain mirror + RTF formatting together.
+    func updateRich(of id: UUID, plain: String, rtf: Data) {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
+        let b64 = rtf.base64EncodedString()
+        guard notes[idx].content != plain || notes[idx].rtfBase64 != b64 else { return }
+        notes[idx].content = plain
+        notes[idx].rtfBase64 = b64
+        notes[idx].updatedAt = .now
+        scheduleAutosave(notes[idx])
+    }
+
+    /// Copies all note files into the folder for a new location.
+    /// The switch itself takes effect on next launch.
+    func migrateStorage(to location: StorageLocation) {
+        let (target, _) = Self.folder(for: location)
+        let fm = FileManager.default
+        try? fm.createDirectory(at: target, withIntermediateDirectories: true)
+        guard target != syncFolder else { return }
+        for note in notes {
+            if let data = try? encoder.encode(note) {
+                try? data.write(to: target.appendingPathComponent("\(note.id.uuidString).json"),
+                                options: .atomic)
+            }
+        }
     }
 
     func applyAIResult(_ cleaned: String, to id: UUID) {
         guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
         notes[idx].preAIContent = notes[idx].content
         notes[idx].content = cleaned
+        notes[idx].rtfBase64 = nil // AI output is plain; formatting resets
         notes[idx].updatedAt = .now
         save(notes[idx])
     }
@@ -119,6 +188,7 @@ final class NotesStore: ObservableObject {
               let previous = notes[idx].preAIContent else { return }
         notes[idx].content = previous
         notes[idx].preAIContent = nil
+        notes[idx].rtfBase64 = nil
         notes[idx].updatedAt = .now
         save(notes[idx])
     }

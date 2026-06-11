@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The right pane: centered grey date line on top, then a plain text editor.
-/// Everything autosaves; the AI button in the toolbar rewrites the note.
+/// The right pane: centered grey date line on top, then a rich text editor.
+/// Everything autosaves; ⌘B/⌘I/⌘U/⇧⌘H/⇧⌘X format the selection.
 struct EditorView: View {
     @EnvironmentObject private var store: NotesStore
     @Binding var aiRunning: Bool
@@ -15,24 +15,26 @@ struct EditorView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 4)
 
-                TextEditor(text: binding(for: note))
-                    .font(.system(size: 14))
-                    .lineSpacing(3)
-                    .scrollContentBackground(.hidden)
-                    .padding(.horizontal, 16)
-                    .disabled(aiRunning)
-                    .overlay {
-                        if aiRunning {
-                            VStack(spacing: 10) {
-                                ProgressView()
-                                Text("Tidying up your note…")
-                                    .font(.callout)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.background.opacity(0.7))
+                RichTextEditor(
+                    noteID: note.id,
+                    rtfBase64: note.rtfBase64,
+                    plainText: note.content
+                ) { plain, rtf in
+                    store.updateRich(of: note.id, plain: plain, rtf: rtf)
+                }
+                .disabled(aiRunning)
+                .overlay {
+                    if aiRunning {
+                        VStack(spacing: 10) {
+                            ProgressView()
+                            Text("Tidying up your note…")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.background.opacity(0.7))
                     }
+                }
             }
             .background(Color(nsColor: .textBackgroundColor))
             .onAppear {
@@ -49,13 +51,6 @@ struct EditorView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .textBackgroundColor))
         }
-    }
-
-    private func binding(for note: Note) -> Binding<String> {
-        Binding(
-            get: { store.selectedNote?.content ?? note.content },
-            set: { store.updateContent(of: note.id, to: $0) }
-        )
     }
 
     static func headerDate(_ date: Date) -> String {

@@ -9,17 +9,22 @@ struct Note: Identifiable, Codable, Equatable {
     var updatedAt: Date
     /// Snapshot of the content before the last AI cleanup, so it can be reverted.
     var preAIContent: String?
+    /// RTF formatting (bold/italic/underline/highlight) as base64; `content`
+    /// stays the plain-text mirror used for titles, search, sync, and AI.
+    var rtfBase64: String?
 
     init(id: UUID = UUID(),
          content: String = "",
          createdAt: Date = .now,
          updatedAt: Date = .now,
-         preAIContent: String? = nil) {
+         preAIContent: String? = nil,
+         rtfBase64: String? = nil) {
         self.id = id
         self.content = content
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.preAIContent = preAIContent
+        self.rtfBase64 = rtfBase64
     }
 
     /// First non-empty line, shown as the title in the list (like Notes).

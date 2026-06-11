@@ -6,6 +6,7 @@ create table if not exists public.notes (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   content text not null default '',
   pre_ai_content text,
+  rtf_base64 text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted boolean not null default false
@@ -22,3 +23,6 @@ create policy "users manage own notes"
 
 -- Stream inserts/updates to clients in real time.
 alter publication supabase_realtime add table public.notes;
+
+-- If you created the table before formatting support, run this once:
+alter table public.notes add column if not exists rtf_base64 text;

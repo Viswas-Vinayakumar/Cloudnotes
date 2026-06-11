@@ -16,6 +16,12 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/CloudNotes"
 
+if [ -f assets/AppIcon.icns ]; then
+  cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+elif command -v iconutil >/dev/null && [ -d assets/AppIcon.iconset ]; then
+  iconutil -c icns assets/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
+fi
+
 cat > "$APP/Contents/Info.plist" << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -31,6 +37,7 @@ cat > "$APP/Contents/Info.plist" << 'PLIST'
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>LSMinimumSystemVersion</key>  <string>13.0</string>
   <key>NSHighResolutionCapable</key> <true/>
+  <key>CFBundleIconFile</key>        <string>AppIcon</string>
   <key>NSPrincipalClass</key>        <string>NSApplication</string>
 </dict>
 </plist>

@@ -124,9 +124,34 @@ struct SettingsView: View {
 
     // MARK: - Local folder
 
+    @AppStorage("storageLocation") private var storageLocation: String = "auto"
+
     private var folderSection: some View {
         Section("Offline Storage") {
-            LabeledContent("Folder mode", value: store.isUsingiCloud ? "iCloud Drive" : "Local folder")
+            Picker("Sync notes through", selection: $storageLocation) {
+                Text("Automatic").tag("auto")
+                if NotesStore.iCloudDriveRoot() != nil {
+                    Text("iCloud Drive").tag("icloud")
+                }
+                if NotesStore.googleDriveRoot() != nil {
+                    Text("Google Drive").tag("googleDrive")
+                }
+                Text("Local only").tag("local")
+            }
+            .onChange(of: storageLocation) { newValue in
+                if let loc = NotesStore.StorageLocation(rawValue: newValue) {
+                    store.migrateStorage(to: loc)
+                }
+            }
+            if NotesStore.googleDriveRoot() == nil {
+                Text("Google Drive appears here once the Google Drive for desktop app is installed and signed in.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Text("Notes are copied over immediately; relaunch the app to finish switching.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            LabeledContent("Active mode", value: store.locationLabel)
             LabeledContent("Folder") {
                 Text(store.syncFolder.path)
                     .font(.caption)

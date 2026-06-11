@@ -35,6 +35,19 @@ struct CloudNotesApp: App {
                 }
                 .keyboardShortcut("t", modifiers: [.command, .shift])
             }
+            CommandMenu("Format") {
+                Button("Bold") { FormatActions.toggleBold() }
+                    .keyboardShortcut("b", modifiers: [.command])
+                Button("Italic") { FormatActions.toggleItalic() }
+                    .keyboardShortcut("i", modifiers: [.command])
+                Button("Underline") { FormatActions.toggleUnderline() }
+                    .keyboardShortcut("u", modifiers: [.command])
+                Divider()
+                Button("Highlight") { FormatActions.toggleHighlight() }
+                    .keyboardShortcut("h", modifiers: [.command, .shift])
+                Button("Strikethrough") { FormatActions.toggleStrikethrough() }
+                    .keyboardShortcut("x", modifiers: [.command, .shift])
+            }
         }
 
         Settings {

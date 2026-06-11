@@ -61,9 +61,9 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 } else {
-                    Image(systemName: store.isUsingiCloud ? "checkmark.icloud" : "externaldrive")
+                    Image(systemName: store.locationLabel == "Local folder" ? "externaldrive" : "checkmark.icloud")
                         .foregroundStyle(.secondary)
-                    Text(store.isUsingiCloud ? "iCloud Drive folder" : "Local folder")
+                    Text(store.locationLabel)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
